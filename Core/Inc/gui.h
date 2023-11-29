@@ -11,7 +11,8 @@ extern C {
 #include "common.h"
 
 void guiInit( );
-void guiUpdate(struct State s);
+//void guiUpdate(struct State s);
+void guiUpdate( );
 
 #ifdef __cplusplus
 }

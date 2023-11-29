@@ -4,34 +4,102 @@
 
 char stemp[5];
 char sAdcVal[4];
+char sMode[1];
 
 void guiInit( ){
 	 SSD1306_Init();
 }
-void guiUpdate(struct State s){
-	SSD1306_Clear();
 
+void guiUpdate( ){
+	SSD1306_Clear();
+    uint16_t target = getState()->encoderTick;
+    uint32_t targetav = heaterTargetAdcV();
+    if (stateModeIs( WARM)){
+    	target = 200;
+    	targetav = heaterWarmTargetAdcV();
+    }
+    else if(stateModeIs(HEATING) && getState()->highPower){
+    	target = getState()->encoderTick + 30;
+    	targetav = heaterHighTargetAdcV();
+    }
 	// show target temp at 1st line
-    utoa(s.encoderTick, stemp, 10);
+    utoa(target, stemp, 10);
 	SSD1306_GotoXY (0, 0);
 	SSD1306_Puts (stemp, &Font_11x18, 1);
 
-	utoa(heaterTargetAdcV(), sAdcVal, 10);
-	SSD1306_GotoXY (48, 0);
+	utoa(targetav, sAdcVal, 10);
+	SSD1306_GotoXY (40, 0);
 	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
 
+	switch(getState()->mode){
+		case HEATING: sMode[0] = 'H'; break;
+		case FORCED_HEATING: sMode[0] = 'F'; break;
+		case OFF: sMode[0] = 'O'; break;
+		case WARM: sMode[0] = 'W'; break;
+		case SETTING: sMode[0] = 'S'; break;
+	}
+
+	SSD1306_GotoXY (111, 0);
+	SSD1306_Puts (sMode, &Font_11x18, 1);
+
 	// show current temp on 2nd line
-	utoa(s.currentTemp, stemp, 10);
+	utoa(getState()->currentTemp, stemp, 10);
 	SSD1306_GotoXY (0, 20);
 	SSD1306_Puts (stemp, &Font_11x18, 1);
 
 	// show current currentAdcVal on 3rd line
-	utoa(s.currentAdcVal, sAdcVal, 10);
+	utoa(getState()->currentAdcVal, sAdcVal, 10);
 	SSD1306_GotoXY (0, 40);
 	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
 
 	SSD1306_UpdateScreen();
 }
+
+
+//void guiUpdate(struct State s){
+//	SSD1306_Clear();
+//    uint16_t target = s.encoderTick;
+//    uint32_t targetav = heaterTargetAdcV();
+//    if (s.mode == WARM){
+//    	target = 200;
+//    	targetav = heaterWarmTargetAdcV();
+//    }
+//    else if(s.mode == HEATING && s.highPower){
+//    	target = s.encoderTick + 30;
+//    	targetav = heaterHighTargetAdcV();
+//    }
+//	// show target temp at 1st line
+//    utoa(target, stemp, 10);
+//	SSD1306_GotoXY (0, 0);
+//	SSD1306_Puts (stemp, &Font_11x18, 1);
+//
+//	utoa(targetav, sAdcVal, 10);
+//	SSD1306_GotoXY (40, 0);
+//	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
+//
+//	switch(s.mode){
+//		case HEATING: sMode[0] = 'H'; break;
+//		case FORCED_HEATING: sMode[0] = 'F'; break;
+//		case OFF: sMode[0] = 'O'; break;
+//		case WARM: sMode[0] = 'W'; break;
+//		case SETTING: sMode[0] = 'S'; break;
+//	}
+//
+//	SSD1306_GotoXY (111, 0);
+//	SSD1306_Puts (sMode, &Font_11x18, 1);
+//
+//	// show current temp on 2nd line
+//	utoa(s.currentTemp, stemp, 10);
+//	SSD1306_GotoXY (0, 20);
+//	SSD1306_Puts (stemp, &Font_11x18, 1);
+//
+//	// show current currentAdcVal on 3rd line
+//	utoa(s.currentAdcVal, sAdcVal, 10);
+//	SSD1306_GotoXY (0, 40);
+//	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
+//
+//	SSD1306_UpdateScreen();
+//}
 
 //	SSD1306_GotoXY (0,0);
 //	SSD1306_Puts ("NIZAR", &Font_11x18, 1);

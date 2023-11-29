@@ -19,8 +19,16 @@
  const uint16_t encoderCtMax = 500;
  const uint16_t encoderCtMin = 150;
  uint8_t exti = 0;
+ const uint16_t  longPress = 2000;;
+ const uint16_t  shortPress = 500;         // If the button was pressed less that this timeout, we assume the short button press
+ volatile uint32_t pt;                       // Time in ms when the button was pressed (press time)
 
  char pinName[5] ="";
+ struct State* pStat;
+
+ void input_init( ){
+	 pStat = getState();
+ }
  void resetEncoder(){
 
  }
@@ -63,28 +71,120 @@ void exti_callback(uint16_t GPIO_Pin){
 	    else if (encoderCt < encoderCtMin) encoderCt = encoderCtMin;
 		 strcpy(pinName, "ENC_A");
 	 }
-	 else if (GPIO_Pin == ENC_SW_Pin && (currentMillis - previousMillis > 20)){
+	 else if (GPIO_Pin == ENC_SW_Pin){
 		 strcpy(pinName, "ENCSW");
+		 bool keyUp = HAL_GPIO_ReadPin(ENC_SW_GPIO_Port, ENC_SW_Pin);
+		 unsigned long now_t = HAL_GetTick();
+		  if (!keyUp) {                                 // The button has been pressed
+		    if ((pt == 0) || (now_t - pt > longPress)) pt = now_t;
+		  } else {
+		    if (pt > 0) {
+		      if ((now_t - pt) < shortPress){// short press
+		    	 switch(pStat->mode)
+		    	 {
+					 case HEATING: stateSetMode(WARM); break; // reset WARM to OFF count
+					 case WARM:  stateSetMode(OFF); break;
+					 case OFF: stateSetMode(HEATING); break; //  reset HEATING to WARM count
+		    	 }
+		      }
+		      else{   // long press
+		    	  if (pStat->mode !=  SETTING ){
+		    		  pStat->mode =  SETTING;
+		    	  }else{
+		    		  pStat->mode =  OFF;
+		    	  }
+ 		      }
+		      pt = 0;
+		    }
+		  }
 
 	 }
-	 else if  (GPIO_Pin == Han_On_Pin && (currentMillis - previousMillis > 20)){
-		 strcpy(pinName, "HA_SW");
-	 }
-	 else if  (GPIO_Pin == Han_Dock_Pin && (currentMillis - previousMillis > 20)){
-			 strcpy(pinName, "HA_SP");
-	 }
+//	 else if  (GPIO_Pin == Han_On_Pin ){ //&& (currentMillis - previousMillis > 20)){
+//		 if (  isPaddleDownS()){
+//			 stateSetMode(HEATING);
+//			 pStat->highPower = true;
+//			 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
+//		}
+//		 else{
+//			 pStat->highPower = false;
+//			 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
+//		 }
+////				 if (stateModeIs(WARM) && !isHandleDocked()){
+////					 stateSetMode(HEATING);
+////					 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
+////				 }
+//		// strcpy(pinName, "HA_SW");//TODO
+//	 }
+	 else if  (GPIO_Pin == Dock_Pin){
+		if (isHandleDocked()){
+			if (stateModeIs(HEATING)){
+				stateSetMode(WARM);
+			}
+			//HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
+		}
+		else{ //if(!isHandleDocked()){ //stateModeIs(WARM) &&
+			if (stateModeIs(WARM)){
+				stateSetMode(HEATING);
+			}
+
+			//HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
+		}
+	}
 	 previousMillis = currentMillis;
 	 exti = 1;
 }
+
+
+bool isPaddleDownS(){
+	return HAL_GPIO_ReadPin(Power_GPIO_Port, Power_Pin) == 0;
+}
+
+bool isHandleDocked(){
+	return (HAL_GPIO_ReadPin(Dock_GPIO_Port, Dock_Pin) == 0);
+}
+
+void checkHighPowerPaddle(){// a work aroung for failed exi int on dock pin. call it from main loop
+	 if (  isPaddleDownS()){
+				 stateSetMode(HEATING);
+				 pStat->highPower = true;
+			//	 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
+			}
+	 else{
+		 pStat->highPower = false;
+	 }
+//	if (isHandleDocked()){
+//		if (stateModeIs(HEATING)){
+//			stateSetMode(WARM);
+//		}
+//	// HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
+//	}
+//	else{ //if(!isHandleDocked()){ //stateModeIs(WARM) &&
+//		if (stateModeIs(WARM)){
+//			stateSetMode(HEATING);
+//		}
+//	// HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
+//	}
+}
+
+
 /**
  * Check values of input pins
  */
-void checkPins(){
-
-	if (HAL_GPIO_ReadPin(Han_On_GPIO_Port, Han_On_Pin) == GPIO_PIN_RESET){ //handle button is pressed down
-
-//		if (!heaterIsDisabled()){
-//			heaterOn();  // force heaterOn regardless adcVal
+//void checkPins(){
+//
+//	if (HAL_GPIO_ReadPin(Han_On_GPIO_Port, Han_On_Pin) == GPIO_PIN_RESET){ // handle button/foot paddle is pressed down
+//		// forced heating
+//		if (pState->mode == HEATING || pState->mode == WARM ){
+//			pState->mode = FORCED_HEATING;
 //		}
-	}
-}
+//	}else{
+//		//pState->mode == HEATING;  // when foot paddle release, go to normal heating mode
+//	}
+//
+//	if (HAL_GPIO_ReadPin(Han_Dock_GPIO_Port, Han_Dock_Pin) == GPIO_PIN_RESET){ // iron handle on holder, heater go to warm mode
+//		if (pState->mode == HEATING) pState->mode = WARM;
+//	}else{
+//		//if (pState->mode == WARM) pState->mode = HEATING;
+//	}
+//}
+

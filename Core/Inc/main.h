@@ -71,11 +71,11 @@ void Error_Handler(void);
 #define ENC_SW_Pin GPIO_PIN_14
 #define ENC_SW_GPIO_Port GPIOB
 #define ENC_SW_EXTI_IRQn EXTI15_10_IRQn
-#define Han_On_Pin GPIO_PIN_15
-#define Han_On_GPIO_Port GPIOB
-#define Han_On_EXTI_IRQn EXTI15_10_IRQn
-#define Han_Dock_Pin GPIO_PIN_8
-#define Han_Dock_GPIO_Port GPIOA
+#define Dock_Pin GPIO_PIN_15
+#define Dock_GPIO_Port GPIOB
+#define Dock_EXTI_IRQn EXTI15_10_IRQn
+#define Power_Pin GPIO_PIN_8
+#define Power_GPIO_Port GPIOA
 #define BEEP_Pin GPIO_PIN_4
 #define BEEP_GPIO_Port GPIOB
 

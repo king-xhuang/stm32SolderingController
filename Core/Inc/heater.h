@@ -11,7 +11,7 @@ extern C {
 #include <stdint.h>
 #include "common.h"
 
-void heaterInit(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint16_t onCountMax);
+void heaterInit(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);  //uint16_t onCountMax);
 void heaterSetTemp(uint16_t temp);
 void heaterOn();
 void heaterOff();
@@ -25,6 +25,8 @@ void heaterEnable(bool val);
 void heaterCheckTemp(uint32_t adcVal, uint16_t tick);
 void heaterCheckOnTime();
 uint32_t heaterTargetAdcV();
+uint32_t heaterWarmTargetAdcV();
+uint32_t heaterHighTargetAdcV();
 uint16_t v2temp(uint32_t adcValue);
 uint32_t temp2V(uint16_t temp);
 

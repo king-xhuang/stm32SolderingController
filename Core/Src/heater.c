@@ -1,9 +1,13 @@
 #include "main.h"
 //#include "stm32f1xx_hal_i2c.h"
 #include "heater.h"
-uint32_t target = 300;  // target heater Temperature  in Celsius
-uint32_t targetTempAdcVal ;  // target heater Temperature in ADC value (0-4095) acquired from the tc voltage amplified by OP
+uint32_t targetTemp = 300;  // target heater Temperature  in Celsius
+uint32_t targetWarmTemp  = 200;
+uint32_t targetHighTemp  = 380;
 
+uint32_t targetTempAdcVal;  // target heater Temperature in ADC value (0-4095) acquired from the tc voltage amplified by OP
+uint32_t targetWarmTempAdcVal;
+uint32_t targetHighTempAdcVal;
 
 uint32_t adcVCalMax = 2560; // adv calibration high value at tip temp of 360 C. TODO need adjusted by experiment, determined by OP gain and tip tc property
 uint32_t adcVCalMin = 770; // adv calibration low  value  at tip temp of 180 C.
@@ -23,6 +27,8 @@ uint32_t adcVCalStepCount = 20; // TODO passed in from heaterInit()
 
 GPIO_TypeDef *GPIOxx;
 uint16_t heaterPin;
+
+struct State*  pSt;
 
 //uint32_t map(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max) // need to declare this function before the calling function when not declared in .h file
 //{
@@ -59,25 +65,30 @@ void heaterEnable(bool val){
 	}
 
 }
-void heaterInit(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint16_t onMax){
+void heaterInit(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin  ){ //uint16_t onMax){
 	heaterEnable(true);
-
+	//sta = st;
+	pSt  = getState();
 	// calculate onCountMap
-	onCountMax = onMax;
-	short arryLen = sizeof(onCountMap)/sizeof(onCountMap[0]);
-	if ( arryLen!= onCountStepSize){
-		onCountStepSize = arryLen;
-	}
-	for (short i = 0; i < onCountStepSize; i++){
-		onCountMap[i] =  onCountMax*(i+1)/onCountStepSize;
-	}
-	onCountMap[onCountStepSize-1] = onCountMax;
+//	onCountMax = onMax;
+//	short arryLen = sizeof(onCountMap)/sizeof(onCountMap[0]);
+//	if ( arryLen!= onCountStepSize){
+//		onCountStepSize = arryLen;
+//	}
+//	for (short i = 0; i < onCountStepSize; i++){
+//		onCountMap[i] =  onCountMax*(i+1)/onCountStepSize;
+//	}
+//	onCountMap[onCountStepSize-1] = onCountMax;
 
 	heaterPin = GPIO_Pin;
 	GPIOxx = GPIOx;
 
 	tempCalDelta = (float)(tempCalMax -tempCalMin);
 	vCalDelta    = (float)(adcVCalMax - adcVCalMin);
+
+	targetWarmTempAdcVal = temp2V(targetWarmTemp);
+
+
 }
 void heaterCheckOnTime(){
 	if ( isOn() && ((HAL_GetTick() - heaterStartTime) > onCount)){
@@ -102,15 +113,23 @@ uint16_t calcOnCount(int32_t vd){  // TODO  need a map
  *
  */
 void heaterCheckTemp(uint32_t adcVal, uint16_t tick){
-	if (tick != target){
+	if (tick != targetTemp){
 		heaterSetTemp(tick);
 	}
+	uint32_t tempAdcVal = targetTempAdcVal;
+	if(stateModeIs(WARM)){
+		tempAdcVal = targetWarmTempAdcVal;
+	}else if (stateModeIs(HEATING)){
+		if (pSt->highPower){
+			tempAdcVal = targetHighTempAdcVal;
+		}
+	}
 
-	int32_t vd = (int32_t)targetTempAdcVal - (int32_t)adcVal;
+	int32_t vd = (int32_t)tempAdcVal - (int32_t)adcVal;
 	//onCount = calcOnCount(vd);
 	//if (onCount >  0){ //TODO
 	if (vd  >  0){
-		heaterStartTime = HAL_GetTick();
+		//heaterStartTime = HAL_GetTick();
 		heaterOn();
 	}else{
 		heaterOff();
@@ -120,10 +139,18 @@ void heaterCheckTemp(uint32_t adcVal, uint16_t tick){
 uint32_t heaterTargetAdcV(){
 	return targetTempAdcVal;
 }
+uint32_t heaterWarmTargetAdcV(){
+	return targetWarmTempAdcVal;
+}
+uint32_t heaterHighTargetAdcV(){
+	return targetHighTempAdcVal;
+}
 
 void heaterSetTemp(uint16_t temp){
-	target = temp;
+	targetTemp = temp;
 	targetTempAdcVal = temp2V(temp);
+	targetHighTemp = targetTemp + 30;
+	targetHighTempAdcVal = temp2V(targetHighTemp);
 }
 
 void heaterOn(){

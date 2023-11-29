@@ -252,7 +252,7 @@ void EXTI15_10_IRQHandler(void)
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(ENC_A_Pin);
   HAL_GPIO_EXTI_IRQHandler(ENC_SW_Pin);
-  HAL_GPIO_EXTI_IRQHandler(Han_On_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Dock_Pin);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
   /* USER CODE END EXTI15_10_IRQn 1 */

@@ -72,7 +72,7 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-volatile struct State state;
+
 uint32_t tempVal;
 uint16_t readValue;
 volatile uint32_t adcValues[2];
@@ -85,9 +85,11 @@ float adcf= 0.0;
 volatile uint8_t adcRead = 0;  // flag 1-- adc conversion completed
 volatile uint16_t adcCount = 0;
 
+
 const uint32_t adcDelay = 1; //delay adc start for x ms to get accurate tc voltage, until fixed the slow falling edge on MOSFET Drain
 const uint16_t adcCheckPeriod = 50; // in ms
-volatile uint32_t adcCheckStartTime = 0;
+
+
 volatile uint32_t adcCheckEndTime = 0;
 
 
@@ -95,14 +97,30 @@ void sendMsg(char* msg, uint16_t len){
 	HAL_UART_Transmit(&huart1, msg , len, 1000);
 }
 void adcCheckAndConvertion(){
+	checkStateTimeout(HAL_GetTick() );
+
+	// since ext int not work on Han_Dock_Pin, here is the work around
+    checkHighPowerPaddle();
+
 	if (HAL_GetTick() < adcCheckEndTime) return;
 
-	adcCheckStartTime = HAL_GetTick();  // r
-	adcCheckEndTime = adcCheckStartTime + adcCheckPeriod;
+	adcCheckEndTime = HAL_GetTick() + adcCheckPeriod;
 	heaterEnable(false); // disable and  turn off heater before ADC start
 
-	HAL_GPIO_TogglePin( BEEP_GPIO_Port, BEEP_GPIO_Port );// set test signal
-	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);// set test signal
+//	if(isHandleDocked()){
+//		if(state.mode == HEATING) state.mode = WARM;
+//	}
+//	if(isPaddleDownS()){
+//		if (state.mode == HEATING || state.mode == WARM ){
+//			state.mode = HEATING;
+//			state.highPower = true;
+//		}
+//	}else{
+//		state.highPower = false;
+//	}
+
+//	HAL_GPIO_TogglePin( BEEP_GPIO_Port, BEEP_GPIO_Port );// set test signal
+//	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);// set test signal
 
 	HAL_Delay(adcDelay); // wait for MOSEFT drain valtage fall to zero
 	HAL_ADC_Start_DMA(&hadc1, adcValues, 2);
@@ -151,17 +169,22 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1);
   //HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
-  testInit(&hi2c1, &huart1);
+  //testInit(&hi2c1, &huart1);
+  struct State* pState = getState();
   cfgInit(&hi2c1, &huart1);
-  heaterInit(LED_GPIO_Port, LED_Pin, adcCheckPeriod - adcDelay - 1);
+  heaterInit(LED_GPIO_Port, LED_Pin);
 
   //testCfg();// replace this with cfg function to load config data from eeprom
   // testPages();
   // testTemp2V();
-  state.mode = HEATING;
-  state.preSetTemp = 350;// cfgGetEncTick(); TODO
-  encoderSetTick(state.preSetTemp);
-  heaterSetTemp(state.preSetTemp);
+
+  stateSetMode(HEATING);
+  pState->preSetTemp = 350;// cfgGetEncTick(); TODO
+  pState->highPower = false;
+  pState->highPowerTemp = 380;// cfgGetEncTick(); TODO
+  encoderSetTick(pState->preSetTemp);
+  heaterSetTemp(pState->preSetTemp);
+  input_init( );
   guiInit();
 //  adcCheckStartTime = HAL_GetTick();
 //  adcCheckEndTime = adcCheckStartTime + adcCheckPeriod;
@@ -172,10 +195,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	//  guiUpdate(state);
-	//heaterCheckOnTime();
 	adcCheckAndConvertion();
-	checkPins();
+
 	if(isExti()){// check input exit interrupt
 		resetExti();
 	}
@@ -183,14 +204,18 @@ int main(void)
 		adcRead = 0;
 		heaterEnable(true); // enable heater which make heater be able to be turn on
 		// heater check startS
-		state.currentAdcVal = adcValues[1];
-		state.encoderTick = encoderGetTick();
-		heaterCheckTemp(state.currentAdcVal , state.encoderTick);
-		state.currentTemp = v2temp(state.currentAdcVal);
-//		sprintf((char*)message, "\r\ntemp=%d ", state.currentTemp );
+		pState->currentAdcVal = adcValues[1];
+		pState->encoderTick = encoderGetTick();
+		if (pState->mode == OFF  || pState->mode == SETTING ){
+			heaterOff();
+		}else{
+			heaterCheckTemp(pState->currentAdcVal , pState->encoderTick);
+		}
+		pState->currentTemp = v2temp(pState->currentAdcVal);
+//		sprintf((char*)message, "\r\ntemp=%d ", pState->currentTemp );
 //		sendMessage(message, 10);
 //		if(adcCount >= 20){
-			guiUpdate(state);
+		guiUpdate( );
 //			adcCount = 0;
 //		}
 	}
@@ -494,23 +519,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ENC_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ENC_SW_Pin */
-  GPIO_InitStruct.Pin = ENC_SW_Pin;
+  /*Configure GPIO pins : ENC_SW_Pin Dock_Pin */
+  GPIO_InitStruct.Pin = ENC_SW_Pin|Dock_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(ENC_SW_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Han_On_Pin */
-  GPIO_InitStruct.Pin = Han_On_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  /*Configure GPIO pin : Power_Pin */
+  GPIO_InitStruct.Pin = Power_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(Han_On_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : Han_Dock_Pin */
-  GPIO_InitStruct.Pin = Han_Dock_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(Han_Dock_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(Power_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
@@ -531,8 +550,8 @@ static void MX_GPIO_Init(void)
  void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
  {
 	//HAL_GPIO_WritePin(BEEP_GPIO_Port, BEEP_GPIO_Port, 0);
-	HAL_GPIO_TogglePin(OUT_17_GPIO_Port, OUT_17_Pin);// set test signal
-	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
+//	HAL_GPIO_TogglePin(OUT_17_GPIO_Port, OUT_17_Pin);// set test signal
+//	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
 
 	//HAL_ADC_GetValue(hadc)(adcValues);
 	adcRead = 1;  // set flag to indicate one adc conversion is done
