@@ -39,7 +39,7 @@ void guiUpdate( ){
 		case SETTING: sMode[0] = 'S'; break;
 	}
 
-	SSD1306_GotoXY (111, 0);
+	SSD1306_GotoXY (112, 0);
 	SSD1306_Puts (sMode, &Font_11x18, 1);
 
 	// show current temp on 2nd line

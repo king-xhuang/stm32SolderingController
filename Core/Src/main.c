@@ -102,28 +102,14 @@ void adcCheckAndConvertion(){
 	// since ext int not work on Han_Dock_Pin, here is the work around
     checkHighPowerPaddle();
 
-	if (HAL_GetTick() < adcCheckEndTime) return;
-
-	adcCheckEndTime = HAL_GetTick() + adcCheckPeriod;
-	heaterEnable(false); // disable and  turn off heater before ADC start
-
-//	if(isHandleDocked()){
-//		if(state.mode == HEATING) state.mode = WARM;
-//	}
-//	if(isPaddleDownS()){
-//		if (state.mode == HEATING || state.mode == WARM ){
-//			state.mode = HEATING;
-//			state.highPower = true;
-//		}
-//	}else{
-//		state.highPower = false;
-//	}
-
-//	HAL_GPIO_TogglePin( BEEP_GPIO_Port, BEEP_GPIO_Port );// set test signal
-//	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);// set test signal
-
-	HAL_Delay(adcDelay); // wait for MOSEFT drain valtage fall to zero
-	HAL_ADC_Start_DMA(&hadc1, adcValues, 2);
+//	if (HAL_GetTick() < adcCheckEndTime) return;
+//
+//	adcCheckEndTime = HAL_GetTick() + adcCheckPeriod;
+//	heaterEnable(false); // disable and  turn off heater before ADC start
+//    HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);// set test signal
+//
+// 	HAL_Delay(adcDelay); // wait for MOSEFT drain valtage fall to zero
+//	HAL_ADC_Start_DMA(&hadc1, adcValues, 2);
 }
 
 /* USER CODE END 0 */
@@ -202,15 +188,15 @@ int main(void)
 	}
 	if(adcRead){
 		adcRead = 0;
-		heaterEnable(true); // enable heater which make heater be able to be turn on
-		// heater check startS
-		pState->currentAdcVal = adcValues[1];
-		pState->encoderTick = encoderGetTick();
-		if (pState->mode == OFF  || pState->mode == SETTING ){
-			heaterOff();
-		}else{
-			heaterCheckTemp(pState->currentAdcVal , pState->encoderTick);
-		}
+//		heaterEnable(true); // enable heater which make heater be able to be turn on
+//		// heater check startS
+//		pState->currentAdcVal = adcValues[1];
+//		pState->encoderTick = encoderGetTick();
+//		if (pState->mode == OFF  || pState->mode == SETTING ){
+//			heaterOff();
+//		}else{
+//			heaterCheckTemp(pState->currentAdcVal , pState->encoderTick);
+//		}
 		pState->currentTemp = v2temp(pState->currentAdcVal);
 //		sprintf((char*)message, "\r\ntemp=%d ", pState->currentTemp );
 //		sendMessage(message, 10);
@@ -550,26 +536,32 @@ static void MX_GPIO_Init(void)
  void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
  {
 	//HAL_GPIO_WritePin(BEEP_GPIO_Port, BEEP_GPIO_Port, 0);
-//	HAL_GPIO_TogglePin(OUT_17_GPIO_Port, OUT_17_Pin);// set test signal
-//	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
+	HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin,1);// set test signal
+ 	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
 
-	//HAL_ADC_GetValue(hadc)(adcValues);
+ 	heaterEnable(true); // enable heater which make heater be able to be turn on
+	// heater check startS
+	getState()->currentAdcVal = adcValues[1];
+	getState()->encoderTick = encoderGetTick();
+	if (getState()->mode == OFF  || getState()->mode == SETTING ){
+		heaterOff();
+	}else{
+		heaterCheckTemp(getState()->currentAdcVal , getState()->encoderTick);
+	}
+
 	adcRead = 1;  // set flag to indicate one adc conversion is done
 	adcCount++;
  }
 
  void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  {
-//	 if (htim == &htim2){
-//		heaterEnable(false); // disable and  turn off heater before ADC start.
-//        adcTimerTrig = true;
-//        adcTimerStartTime = HAL_GetTick();
-//		HAL_GPIO_WritePin(BEEP_GPIO_Port, BEEP_GPIO_Port, 1);// set test signal
-//		HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, 1);// set test signal
-//		//HAL_ADC_Start_DMA(&hadc1, adcValues, 2);  //
-//	 }
-
-
+	 if (htim == &htim2){
+		heaterEnable(false); // disable and  turn off heater before ADC start.
+        //adcTimerTrig = true;
+		HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, 0);// set test signal
+        HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);// set test signal
+		HAL_ADC_Start_DMA(&hadc1, adcValues, 2);  //
+	 }
  }
 
 //void HAL_TIM_PeriodElapsedHalfCpltCallback(TIM_HandleTypeDef *htim)
