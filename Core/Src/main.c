@@ -86,30 +86,23 @@ volatile uint8_t adcRead = 0;  // flag 1-- adc conversion completed
 volatile uint16_t adcCount = 0;
 
 
-const uint32_t adcDelay = 1; //delay adc start for x ms to get accurate tc voltage, until fixed the slow falling edge on MOSFET Drain
-const uint16_t adcCheckPeriod = 50; // in ms
-
-
-volatile uint32_t adcCheckEndTime = 0;
+//const uint32_t adcDelay = 1; //delay adc start for x ms to get accurate tc voltage, until fixed the slow falling edge on MOSFET Drain
+//const uint16_t adcCheckPeriod = 50; // in ms
+//
+//
+//volatile uint32_t adcCheckEndTime = 0;
 
 
 void sendMsg(char* msg, uint16_t len){
 	HAL_UART_Transmit(&huart1, msg , len, 1000);
 }
-void adcCheckAndConvertion(){
+void checkState(){
 	checkStateTimeout(HAL_GetTick() );
 
 	// since ext int not work on Han_Dock_Pin, here is the work around
     checkHighPowerPaddle();
 
-//	if (HAL_GetTick() < adcCheckEndTime) return;
-//
-//	adcCheckEndTime = HAL_GetTick() + adcCheckPeriod;
-//	heaterEnable(false); // disable and  turn off heater before ADC start
-//    HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);// set test signal
-//
-// 	HAL_Delay(adcDelay); // wait for MOSEFT drain valtage fall to zero
-//	HAL_ADC_Start_DMA(&hadc1, adcValues, 2);
+
 }
 
 /* USER CODE END 0 */
@@ -181,22 +174,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	adcCheckAndConvertion();
+	checkState();
 
 	if(isExti()){// check input exit interrupt
 		resetExti();
 	}
 	if(adcRead){
 		adcRead = 0;
-//		heaterEnable(true); // enable heater which make heater be able to be turn on
-//		// heater check startS
-//		pState->currentAdcVal = adcValues[1];
-//		pState->encoderTick = encoderGetTick();
-//		if (pState->mode == OFF  || pState->mode == SETTING ){
-//			heaterOff();
-//		}else{
-//			heaterCheckTemp(pState->currentAdcVal , pState->encoderTick);
-//		}
+
 		pState->currentTemp = v2temp(pState->currentAdcVal);
 //		sprintf((char*)message, "\r\ntemp=%d ", pState->currentTemp );
 //		sendMessage(message, 10);
@@ -538,7 +523,7 @@ static void MX_GPIO_Init(void)
 	//HAL_GPIO_WritePin(BEEP_GPIO_Port, BEEP_GPIO_Port, 0);
 	HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin,1);// set test signal
  	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
-
+    // take 20us to complete ADC conversion
  	heaterEnable(true); // enable heater which make heater be able to be turn on
 	// heater check startS
 	getState()->currentAdcVal = adcValues[1];
@@ -557,6 +542,7 @@ static void MX_GPIO_Init(void)
  {
 	 if (htim == &htim2){
 		heaterEnable(false); // disable and  turn off heater before ADC start.
+		// it takes 3.5us to shut down the PMOSEFT -- 2us delay, 0.5us drop to zero, 1us ripple time
         //adcTimerTrig = true;
 		HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, 0);// set test signal
         HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);// set test signal
@@ -564,16 +550,6 @@ static void MX_GPIO_Init(void)
 	 }
  }
 
-//void HAL_TIM_PeriodElapsedHalfCpltCallback(TIM_HandleTypeDef *htim)
-//{
-//	UNUSED(htim);
-//	 HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-//	 asm("nop");
-//	 HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-//	 //HAL_ADC_GetValue(hadc)(adcValues);
-//     adcRead = 1;
-//	 adcCount++;
-//}
 /* USER CODE END 4 */
 
 /**

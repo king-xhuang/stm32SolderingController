@@ -204,8 +204,6 @@ Discarded input sections
  .text          0x0000000000000000        0x0 ./Core/Src/main.o
  .data          0x0000000000000000        0x0 ./Core/Src/main.o
  .bss           0x0000000000000000        0x0 ./Core/Src/main.o
- .bss.adcCheckEndTime
-                0x0000000000000000        0x4 ./Core/Src/main.o
  .bss.adcf      0x0000000000000000        0x4 ./Core/Src/main.o
  .bss.preSt     0x0000000000000000        0x1 ./Core/Src/main.o
  .bss.readValue
@@ -213,10 +211,6 @@ Discarded input sections
  .bss.refCount  0x0000000000000000        0x2 ./Core/Src/main.o
  .bss.scount    0x0000000000000000        0xa ./Core/Src/main.o
  .bss.tempVal   0x0000000000000000        0x4 ./Core/Src/main.o
- .rodata.adcCheckPeriod
-                0x0000000000000000        0x2 ./Core/Src/main.o
- .rodata.adcDelay
-                0x0000000000000000        0x4 ./Core/Src/main.o
  .text          0x0000000000000000        0x0 ./Core/Src/ssd1306.o
  .data          0x0000000000000000        0x0 ./Core/Src/ssd1306.o
  .bss           0x0000000000000000        0x0 ./Core/Src/ssd1306.o
@@ -1684,9 +1678,9 @@ LOAD G:/tools/STM32CubeIDE_1.13.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.
                 0x0000000008000d64                checkHighPowerPaddle
  .text.sendMsg  0x0000000008000d88       0x14 ./Core/Src/main.o
                 0x0000000008000d88                sendMsg
- .text.adcCheckAndConvertion
+ .text.checkState
                 0x0000000008000d9c       0x12 ./Core/Src/main.o
-                0x0000000008000d9c                adcCheckAndConvertion
+                0x0000000008000d9c                checkState
  .text.SystemClock_Config
                 0x0000000008000dae       0x7e ./Core/Src/main.o
                 0x0000000008000dae                SystemClock_Config

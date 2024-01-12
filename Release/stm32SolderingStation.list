@@ -1299,7 +1299,7 @@ Disassembly of section .text:
  8000d96:	bf00      	nop
  8000d98:	200001dc 	.word	0x200001dc
 
-08000d9c <adcCheckAndConvertion>:
+08000d9c <checkState>:
  8000d9c:	b508      	push	{r3, lr}
  8000d9e:	f000 fd5b 	bl	8001858 <HAL_GetTick>
  8000da2:	f7ff fcf3 	bl	800078c <checkStateTimeout>
@@ -1595,7 +1595,7 @@ Disassembly of section .text:
  80010ae:	f7ff fd7b 	bl	8000ba8 <input_init>
  80010b2:	f7ff fb9d 	bl	80007f0 <guiInit>
  80010b6:	4c19      	ldr	r4, [pc, #100]	; (800111c <main+0x2f0>)
- 80010b8:	f7ff fe70 	bl	8000d9c <adcCheckAndConvertion>
+ 80010b8:	f7ff fe70 	bl	8000d9c <checkState>
  80010bc:	f7ff fd7c 	bl	8000bb8 <isExti>
  80010c0:	b108      	cbz	r0, 80010c6 <main+0x29a>
  80010c2:	f7ff fd81 	bl	8000bc8 <resetExti>
