@@ -51,6 +51,7 @@ DMA_HandleTypeDef hdma_adc1;
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
 
@@ -66,6 +67,7 @@ static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -75,7 +77,7 @@ static void MX_USART1_UART_Init(void);
 
 uint32_t tempVal;
 uint16_t readValue;
-volatile uint32_t adcValues[2];
+volatile uint32_t adcValues[3];
 char scount[10];
 GPIO_PinState preSt = 0;
 
@@ -142,11 +144,13 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM2_Init();
   MX_USART1_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_ADCEx_Calibration_Start(&hadc1);
-  //HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);// 50 duty cycle
 
   //testInit(&hi2c1, &huart1);
   struct State* pState = getState();
@@ -273,7 +277,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.NbrOfConversion = 3;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -283,7 +287,16 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -292,7 +305,7 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -379,6 +392,65 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 72-1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 999;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 500;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -521,12 +593,12 @@ static void MX_GPIO_Init(void)
  void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
  {
 	//HAL_GPIO_WritePin(BEEP_GPIO_Port, BEEP_GPIO_Port, 0);
-	HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin,1);// set test signal
+	//HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin,1);// set test signal
  	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
-    // take 20us to complete ADC conversion
+
  	heaterEnable(true); // enable heater which make heater be able to be turn on
 	// heater check startS
-	getState()->currentAdcVal = adcValues[1];
+	getState()->currentAdcVal = adcValues[2];
 	getState()->encoderTick = encoderGetTick();
 	if (getState()->mode == OFF  || getState()->mode == SETTING ){
 		heaterOff();
@@ -543,10 +615,14 @@ static void MX_GPIO_Init(void)
 	 if (htim == &htim2){
 		heaterEnable(false); // disable and  turn off heater before ADC start.
 		// it takes 3.5us to shut down the PMOSEFT -- 2us delay, 0.5us drop to zero, 1us ripple time
-        //adcTimerTrig = true;
-		HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, 0);// set test signal
+        // it takes about 20-40 us for OP to make output voltage get ready for ADC conversion.
+		// it configured to takes 70us to complete ADC conversion on 3 channels, each with 239.5 cycle sampling time
+		// 1 refV, 2 tempreture, 3 ch0, so the ch0 will have the right thermal voltage  value to ADC conversion
+
+		//adcTimerTrig = true;
+		//HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, 0);// set test signal
         HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);// set test signal
-		HAL_ADC_Start_DMA(&hadc1, adcValues, 2);  //
+		HAL_ADC_Start_DMA(&hadc1, adcValues, 3);  //
 	 }
  }
 
