@@ -25,6 +25,7 @@
 #include "input.h"
 #include "eeprom.h"
 #include "test.h"
+#include "buzzerTone.h"
 //#include "fonts.h"
 //#include "ssd1306.h"
 /* USER CODE END Includes */
@@ -102,7 +103,7 @@ void checkState(){
 	checkStateTimeout(HAL_GetTick() );
 
 	// since ext int not work on Han_Dock_Pin, here is the work around
-    checkHighPowerPaddle();
+    //checkHighPowerPaddle();
 
 
 }
@@ -149,8 +150,8 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_ADCEx_Calibration_Start(&hadc1);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);// 50 duty cycle
+//  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);// 50 duty cycle
 
   //testInit(&hi2c1, &huart1);
   struct State* pState = getState();
@@ -167,8 +168,16 @@ int main(void)
   pState->highPowerTemp = 380;// cfgGetEncTick(); TODO
   encoderSetTick(pState->preSetTemp);
   heaterSetTemp(pState->preSetTemp);
+  buzzToneInit(&htim3);
   input_init( );
   guiInit();
+//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
+//  	HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
+//  	TIM3->ARR = 1000;
+//  	HAL_Delay(1000);
+//  	HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
+    playHeatTone();
+  //playTone(HeatTone);
 //  adcCheckStartTime = HAL_GetTick();
 //  adcCheckEndTime = adcCheckStartTime + adcCheckPeriod;
 
@@ -178,22 +187,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	checkState();
-
+	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
+ 	checkState();
 	if(isExti()){// check input exit interrupt
 		resetExti();
 	}
+ 	toneTickHandler();
 	if(adcRead){
 		adcRead = 0;
-
 		pState->currentTemp = v2temp(pState->currentAdcVal);
-//		sprintf((char*)message, "\r\ntemp=%d ", pState->currentTemp );
-//		sendMessage(message, 10);
-//		if(adcCount >= 20){
 		guiUpdate( );
-//			adcCount = 0;
-//		}
-	}
+ 	}
 	// other checks TODO
 
     /* USER CODE END WHILE */
@@ -417,7 +421,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 72-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 999;
+  htim3.Init.Period = 20;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -440,7 +444,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 500;
+  sConfigOC.Pulse = 400;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -524,10 +528,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, OUT_19_Pin|BEEP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -536,18 +540,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : OUT_17_Pin */
-  GPIO_InitStruct.Pin = OUT_17_Pin;
+  /*Configure GPIO pin : PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(OUT_17_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : OUT_19_Pin BEEP_Pin */
-  GPIO_InitStruct.Pin = OUT_19_Pin|BEEP_Pin;
+  /*Configure GPIO pin : OUT_19_Pin */
+  GPIO_InitStruct.Pin = OUT_19_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(OUT_19_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PH_Pin ENC_SW_Pin Dock_Pin */
+  GPIO_InitStruct.Pin = PH_Pin|ENC_SW_Pin|Dock_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ENC_A_Pin */
@@ -561,18 +571,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ENC_B_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : ENC_SW_Pin Dock_Pin */
-  GPIO_InitStruct.Pin = ENC_SW_Pin|Dock_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : Power_Pin */
-  GPIO_InitStruct.Pin = Power_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(Power_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);

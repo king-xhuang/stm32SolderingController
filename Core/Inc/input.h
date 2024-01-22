@@ -27,7 +27,7 @@ uint16_t encoderGetTick();  //get encoder count value
 
 void encoderSetTick(uint16_t tick); // set encoder count value
 
-bool isPaddleDownS();
+bool isPaddleDown();
 
 bool isHandleDocked();
 

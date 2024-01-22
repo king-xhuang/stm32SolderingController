@@ -99,35 +99,25 @@ void exti_callback(uint16_t GPIO_Pin){
 		  }
 
 	 }
-//	 else if  (GPIO_Pin == Han_On_Pin ){ //&& (currentMillis - previousMillis > 20)){
-//		 if (  isPaddleDownS()){
-//			 stateSetMode(HEATING);
-//			 pStat->highPower = true;
-//			 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
-//		}
-//		 else{
-//			 pStat->highPower = false;
-//			 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
-//		 }
-////				 if (stateModeIs(WARM) && !isHandleDocked()){
-////					 stateSetMode(HEATING);
-////					 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
-////				 }
-//		// strcpy(pinName, "HA_SW");//TODO
-//	 }
+	 else if  (GPIO_Pin == PH_Pin ){ //Power heating button/paddle down/up
+		if (  isPaddleDown()){
+			stateSetMode(HEATING);
+			pStat->highPower = true;
+		}
+		else{
+			pStat->highPower = false;
+		}
+	 }
 	 else if  (GPIO_Pin == Dock_Pin){
 		if (isHandleDocked()){
 			if (stateModeIs(HEATING)){
 				stateSetMode(WARM);
 			}
-			//HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);
 		}
 		else{ //if(!isHandleDocked()){ //stateModeIs(WARM) &&
 			if (stateModeIs(WARM)){
 				stateSetMode(HEATING);
 			}
-
-			//HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);
 		}
 	}
 	 previousMillis = currentMillis;
@@ -135,8 +125,8 @@ void exti_callback(uint16_t GPIO_Pin){
 }
 
 
-bool isPaddleDownS(){
-	return HAL_GPIO_ReadPin(Power_GPIO_Port, Power_Pin) == 0;
+bool isPaddleDown(){
+	return HAL_GPIO_ReadPin(PH_GPIO_Port, PH_Pin) == 0;// TODO use PH_pin
 }
 
 bool isHandleDocked(){
@@ -144,7 +134,7 @@ bool isHandleDocked(){
 }
 
 void checkHighPowerPaddle(){// a work aroung for failed exi int on dock pin. call it from main loop
-	 if (  isPaddleDownS()){
+	 if (  isPaddleDown()){
 				 stateSetMode(HEATING);
 				 pStat->highPower = true;
 			//	 HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 1);

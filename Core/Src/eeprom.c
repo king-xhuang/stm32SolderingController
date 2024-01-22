@@ -5,21 +5,38 @@
 
 I2C_HandleTypeDef *hi2c11;
 UART_HandleTypeDef *huart11;
+// 2k bits devided into 32 pages, each page has 8 bytes
+// 4 pages make a record
+// there are total 8 records in this 2k bits eeprom
+uint8_t recordNum; // record index, 0 based, Max = 7
+// record 0 stores globle data, 1-7 store 7 tip related data
+uint8_t pageNum;   // page index, 0 based,  max = 32
+
 
 uint8_t toWrite1[] = "English is a WestGermanic language of the IndoEuropean language";
-uint8_t toWrite4[4] = "ABCD";
+//uint8_t toWrite4[4] = "ABCD";
 uint8_t toWrite8[8] = "ABCDefgh";
-uint8_t toRead2[64];
-uint8_t toWriteB[] = "H";
-uint8_t toWriteO[] = "Ok";
-uint8_t toRead1[1];
-uint8_t toRead4[4];
-uint8_t toRead8[8];
+//uint8_t toRead2[64];
+//uint8_t toWriteB[] = "H";
+//uint8_t toWriteO[] = "Ok";
+//uint8_t toRead1[1];
+//uint8_t toRead4[4];
+ uint8_t toRead8[8];
 
 
 uint8_t message[15] = {'_'};
 uint16_t encTickMemAddress = 0;
 uint16_t MemAddSize = 1;
+
+// globle data
+uint8_t lastTipRec = 1;
+uint8_t totalTipRec = 1; // at least 1
+
+
+// tip data
+
+
+
 void cfgInit(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart){
 	hi2c11 = hi2c;
 	huart11 = huart;
@@ -50,6 +67,60 @@ HAL_StatusTypeDef writePage(uint16_t pageNo, uint8_t *pdata){
 // pageNo - 0 based; pdata size <=8
 HAL_StatusTypeDef readPage(uint16_t pageNo, uint8_t *pdata){
 	return HAL_I2C_Mem_Read(hi2c11, EEPROM_ADDR, pageNo*8, 1, pdata, 8, HAL_MAX_DELAY);
+}
+
+// recNum - record index, 0 based, Max = 7
+// pdata - data buffer size <= 32 bytes
+// bwrite TRUE -- write, FALSE --read
+// return true if success
+bool accessRecord(uint16_t recNum, uint8_t *pdata, bool bwrite){
+	HAL_StatusTypeDef st = HAL_ERROR;
+	if (recNum > 7) return st;
+	uint16_t i = 0;
+	uint16_t pagebase = recNum*4;
+	for(i = 0; i < 4; i++){
+		if (bwrite){
+			st = writePage(pagebase + i, pdata );
+		}
+		else{
+			st = readPage(pagebase + i, pdata );
+		}
+
+		if(st != HAL_OK ) break;
+	}
+	return st == HAL_OK;
+
+}
+// recNum - record index, 0 based, Max = 7
+// pdata - data buffer size  = 32 bytes
+bool saveRecord(uint16_t recNum, uint8_t *pdata){
+	accessRecord(recNum, pdata, 1);
+}
+// recNum - record index, 0 based, Max = 7
+// pdata - data buffer size  = 32 bytes
+bool readRecord(uint16_t recNum, uint8_t *pdata){
+	return accessRecord(recNum, pdata, 0);
+}
+bool saveGlobleRec(uint8_t *pdata){
+	return saveRecord(0, pdata);
+}
+bool readGlobleRec(uint8_t *pdata){
+	return readRecord(0, pdata);
+}
+bool saveTipRec(uint16_t recNum, uint8_t *pdata){
+	return saveRecord(recNum, pdata);
+}
+bool readTipRec(uint16_t recNum, uint8_t *pdata){
+	return readRecord(recNum, pdata);
+}
+void cfgGetDefault(){
+	uint8_t globleData[32];
+	readGlobleRec(globleData);
+
+}
+//
+testRecords(){
+
 }
 // test write/read all  pages, for 34w02, there are 32 pages and each page has 8 bytes. Writing all bytes with 0 or 255 and check read values
 void testPages(){
