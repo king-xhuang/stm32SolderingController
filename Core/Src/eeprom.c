@@ -123,109 +123,109 @@ testRecords(){
 
 }
 // test write/read all  pages, for 34w02, there are 32 pages and each page has 8 bytes. Writing all bytes with 0 or 255 and check read values
-void testPages(){
-	 HAL_UART_Transmit(huart11, "testing\r\n",10, 1000);
-
-	 uint8_t zv = 0;
-	 uint8_t fv = 255;
-	 uint8_t wv = zv;
-    uint8_t WA[8];
-   for(int j = 0; j< 8; j++){
-	   WA[j] = wv;
-   }
-   uint8_t r[8];
-   HAL_StatusTypeDef rc ;
-   for (int i = 0; i < 32; i++ ){
-	  // HAL_UART_Transmit(huart11, "write\r\n",10, 1000);
-	     rc = writePage(i, WA);
-	   //  HAL_UART_Transmit(huart11, "Af write\r\n",10, 1000);
-	   //HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
-	   HAL_Delay(100);
-		sprintf((char*)message, "Wp=%d Er=%d\r\n", i, rc);
-		HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
-
-   }
-   int err = 0;
-   for (int i = 0; i < 32; i++ ){
-	  // HAL_UART_Transmit(huart11, "read\r\n",8, 1000);
-	    rc = readPage(i, r);
-		sprintf((char*)message, "\r\nRp=%d Er=%d\r\n", i, rc);
-		HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
-		for(int j =0; j< 8; j++){
-			sprintf((char*)message, " %00d ", r[j] );
-			HAL_UART_Transmit(huart11, message, 5, 1000);
-
-	 	 if (r[j] != wv){
-				sprintf((char*)message, "ERRc=%d r=%d w=%d", j, r[j], WA[j]);
-						HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
-            err++;
-		  }
-		}
-   }
-   if (err > 0){
-	   sprintf((char*)message, "\r\nERR=%d  ", err);
-
-	}else{
-		sprintf((char*)message, "\r\nNo ERR");
-	}
-	HAL_UART_Transmit(huart11, message, 8, 1000); ///show total # of read error
-	sprintf((char*)message, "\r\nwrite %d", wv);
-	HAL_UART_Transmit(huart11, message, 12, 1000); ///show the byte value written to
-
-}
-/*
- * save data to eeprom and retrive it to set encoder tick
- */
-void testCfg(){
-	uint8_t message[15] = {'\0'};
-	uint16_t data16[1] = {200};
-//	cfgSaveEncTick( 155);
-
-	uint16_t data16r[1] = {0};
-
-	data16r[0] = cfgGetEncTick( );
-
-	HAL_UART_Transmit(&huart11, "\r\n", 2, 1000);
-	sprintf((char*)message, "u %u\r\n", data16r[0]);
-	HAL_UART_Transmit(&huart11, message, 10, 1000);
-
-	setEncoderTick(data16r[0]);
-}
-void testEEPROM( ){
-	uint8_t message[10] = {'\0'};
-	strcpy((char*)message, "testE\r\n");
-	HAL_I2C_Mem_Write(hi2c11, EEPROM_ADDR, 0, 1, toWrite1, sizeof(toWrite1), HAL_MAX_DELAY);
-	HAL_Delay(100);
-	HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
-	uint8_t adr[1];
-	uint8_t d[1];
-	uint8_t i = 0;
-	while(i < 8){
-		uint8_t p = 8*i;
-//		adr[0] = i;
-	 	//readByte(EEPROM_ADDR, i, toRead8, sizeof(toRead8));
-
-		//readBytes(i, toRead1);
-		HAL_UART_Transmit(&huart11, "\r\npageAdr=", 2, 1000);
-			HAL_UART_Transmit(&huart11, &p, sizeof(&p), 1000);
-
-	HAL_I2C_Mem_Read(&hi2c11, EEPROM_ADDR, p, 1, toRead8, sizeof(toRead8), HAL_MAX_DELAY);
-
-	HAL_UART_Transmit(&huart11, "\r\n", 2, 1000);
-	HAL_UART_Transmit(&huart11, toRead8, sizeof(toRead8), 1000);
-
-//	HAL_I2C_Mem_Read(&hi2c11, EEPROM_ADDR, 4, 1, toRead4, sizeof(toRead4), HAL_MAX_DELAY);
+//void testPages(){
+//	 HAL_UART_Transmit(huart11, "testing\r\n",10, 1000);
+//
+//	 uint8_t zv = 0;
+//	 uint8_t fv = 255;
+//	 uint8_t wv = zv;
+//    uint8_t WA[8];
+//   for(int j = 0; j< 8; j++){
+//	   WA[j] = wv;
+//   }
+//   uint8_t r[8];
+//   HAL_StatusTypeDef rc ;
+//   for (int i = 0; i < 32; i++ ){
+//	  // HAL_UART_Transmit(huart11, "write\r\n",10, 1000);
+//	     rc = writePage(i, WA);
+//	   //  HAL_UART_Transmit(huart11, "Af write\r\n",10, 1000);
+//	   //HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
+//	   HAL_Delay(100);
+//		sprintf((char*)message, "Wp=%d Er=%d\r\n", i, rc);
+//		HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
+//
+//   }
+//   int err = 0;
+//   for (int i = 0; i < 32; i++ ){
+//	  // HAL_UART_Transmit(huart11, "read\r\n",8, 1000);
+//	    rc = readPage(i, r);
+//		sprintf((char*)message, "\r\nRp=%d Er=%d\r\n", i, rc);
+//		HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
+//		for(int j =0; j< 8; j++){
+//			sprintf((char*)message, " %00d ", r[j] );
+//			HAL_UART_Transmit(huart11, message, 5, 1000);
+//
+//	 	 if (r[j] != wv){
+//				sprintf((char*)message, "ERRc=%d r=%d w=%d", j, r[j], WA[j]);
+//						HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
+//            err++;
+//		  }
+//		}
+//   }
+//   if (err > 0){
+//	   sprintf((char*)message, "\r\nERR=%d  ", err);
+//
+//	}else{
+//		sprintf((char*)message, "\r\nNo ERR");
+//	}
+//	HAL_UART_Transmit(huart11, message, 8, 1000); ///show total # of read error
+//	sprintf((char*)message, "\r\nwrite %d", wv);
+//	HAL_UART_Transmit(huart11, message, 12, 1000); ///show the byte value written to
+//
+//}
+///*
+// * save data to eeprom and retrive it to set encoder tick
+// */
+//void testCfg(){
+//	uint8_t message[15] = {'\0'};
+//	uint16_t data16[1] = {200};
+////	cfgSaveEncTick( 155);
+//
+//	uint16_t data16r[1] = {0};
+//
+//	data16r[0] = cfgGetEncTick( );
 //
 //	HAL_UART_Transmit(&huart11, "\r\n", 2, 1000);
-//	HAL_UART_Transmit(&huart11, toRead4, sizeof(toRead4), 1000);
-
-
-			i++;
-	}
-	strcpy((char*)message," end\r\n");
-	HAL_UART_Transmit(&huart11, message, sizeof(message), 1000);
-
-}
+//	sprintf((char*)message, "u %u\r\n", data16r[0]);
+//	HAL_UART_Transmit(&huart11, message, 10, 1000);
+//
+//	setEncoderTick(data16r[0]);
+//}
+//void testEEPROM( ){
+//	uint8_t message[10] = {'\0'};
+//	strcpy((char*)message, "testE\r\n");
+//	HAL_I2C_Mem_Write(hi2c11, EEPROM_ADDR, 0, 1, toWrite1, sizeof(toWrite1), HAL_MAX_DELAY);
+//	HAL_Delay(100);
+//	HAL_UART_Transmit(huart11, message, sizeof(message), 1000);
+//	uint8_t adr[1];
+//	uint8_t d[1];
+//	uint8_t i = 0;
+//	while(i < 8){
+//		uint8_t p = 8*i;
+////		adr[0] = i;
+//	 	//readByte(EEPROM_ADDR, i, toRead8, sizeof(toRead8));
+//
+//		//readBytes(i, toRead1);
+//		HAL_UART_Transmit(&huart11, "\r\npageAdr=", 2, 1000);
+//			HAL_UART_Transmit(&huart11, &p, sizeof(&p), 1000);
+//
+//	HAL_I2C_Mem_Read(&hi2c11, EEPROM_ADDR, p, 1, toRead8, sizeof(toRead8), HAL_MAX_DELAY);
+//
+//	HAL_UART_Transmit(&huart11, "\r\n", 2, 1000);
+//	HAL_UART_Transmit(&huart11, toRead8, sizeof(toRead8), 1000);
+//
+////	HAL_I2C_Mem_Read(&hi2c11, EEPROM_ADDR, 4, 1, toRead4, sizeof(toRead4), HAL_MAX_DELAY);
+////
+////	HAL_UART_Transmit(&huart11, "\r\n", 2, 1000);
+////	HAL_UART_Transmit(&huart11, toRead4, sizeof(toRead4), 1000);
+//
+//
+//			i++;
+//	}
+//	strcpy((char*)message," end\r\n");
+//	HAL_UART_Transmit(&huart11, message, sizeof(message), 1000);
+//
+//}
 //
 //void readByte(uint8_t devAddr, uint8_t byteAddr, uint8_t* read, uint8_t readSize){
 //	uint8_t buf[20];

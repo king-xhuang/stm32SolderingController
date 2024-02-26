@@ -9,12 +9,56 @@ volatile uint32_t heatingEndTime; //  in millis
 //extern volatile uint32_t warmEndTime;
 //extern volatile uint32_t heatingEndTime; //  in millis
 volatile struct State state;
-
+volatile bool beep = false;
+volatile bool save2eeprom = false;
+volatile enum ToneType toneType = StopTone;
+//check beep flag. Stop an existing beeper and start a new one when flag is set.
+void checkBeepFlag(){
+	if (beep){
+		beep = false;
+		toneRepeatTickEnd();
+		playTone(toneType);
+	}
+}
+// set a beep flag and tone type
+void setBeepFlag(bool b, enum ToneType t){
+	beep = b;
+	toneType = t;
+}
+bool save2Eeprom(){
+	if(save2eeprom){
+		save2eeprom = false;
+		return true;
+	}else return false;
+}
 void stateSetMode(enum Mode mode){
 	switch(mode){
-	case HEATING: state.mode = mode;  heatingEndTime = HAL_GetTick()  + TimeToWarm;  break;
-	case WARM:    state.mode = mode;  warmEndTime = HAL_GetTick()  + TimeToOff;      break;
-	case OFF:     state.mode = mode;  break;
+
+	case HEATING:
+		if(state.mode == HEATING) break;
+		state.mode = mode;
+		heatingEndTime = HAL_GetTick()  + TimeToWarm;
+
+		if(state.highPower){
+			setBeepFlag(true, PowerHeatTone);
+		}
+		else{
+			setBeepFlag(true, HeatTone);
+		}
+		break;
+	case WARM:
+		if(state.mode == WARM) break;
+		setBeepFlag(true,WarmTone );
+		state.mode = mode;
+		warmEndTime = HAL_GetTick()  + TimeToOff;
+		break;
+	case OFF:
+		if (state.mode == WARM){
+			setBeepFlag(true, StopTone);
+			save2eeprom = true;
+		}
+		state.mode = mode;
+		break;
 	}
 }
 

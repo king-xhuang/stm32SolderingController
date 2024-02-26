@@ -20,7 +20,8 @@ enum ToneType{
 void buzzToneInit(TIM_HandleTypeDef* pTimer);
 void playHeatTone();
 void playTone(enum ToneType t);
-
+void endTonePlay(bool forceStop);
+void toneRepeatTickEnd();
 void toneTickHandler();
 
 #endif /* INC_BUZZERTONE_H_ */

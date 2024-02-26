@@ -24,8 +24,10 @@
 #include "common.h"
 #include "input.h"
 #include "eeprom.h"
-#include "test.h"
+//#include "test.h"
 #include "buzzerTone.h"
+
+static const int GUI_UPDATE_COUNT = 20;
 //#include "fonts.h"
 //#include "ssd1306.h"
 /* USER CODE END Includes */
@@ -77,7 +79,7 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN 0 */
 
 uint32_t tempVal;
-uint16_t readValue;
+volatile uint16_t mcreadValue;
 volatile uint32_t adcValues[3];
 char scount[10];
 GPIO_PinState preSt = 0;
@@ -88,8 +90,10 @@ float adcf= 0.0;
 volatile uint8_t adcRead = 0;  // flag 1-- adc conversion completed
 volatile uint16_t adcCount = 0;
 
+volatile bool updateGui = false; // flag 1-- update GUI
 
-//const uint32_t adcDelay = 1; //delay adc start for x ms to get accurate tc voltage, until fixed the slow falling edge on MOSFET Drain
+	//const uint32_t adcDelay = 1; //delay adc start for x ms to get accurate tc voltage, until fixed the slow falling edge on MOSFET Drain
+
 //const uint16_t adcCheckPeriod = 50; // in ms
 //
 //
@@ -100,12 +104,30 @@ void sendMsg(char* msg, uint16_t len){
 	HAL_UART_Transmit(&huart1, msg , len, 1000);
 }
 void checkState(){
+	if(save2Eeprom()){
+		cfgSaveEncTick(getState()->encoderTick);
+	}
 	checkStateTimeout(HAL_GetTick() );
 
 	// since ext int not work on Han_Dock_Pin, here is the work around
     //checkHighPowerPaddle();
+}
 
-
+void doIt(struct State *pState) {
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); //test while loop freq
+	//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_GPIO_Port);
+	checkState();
+	//checkBeepFlag();
+	if (isExti()) {
+		// check input exit interrupt
+		resetExti();
+	}
+	//toneTickHandler();
+	if (updateGui ) {
+		updateGui = false;
+		pState->currentTemp = v2temp(pState->currentAdcVal);
+		guiUpdate(adcValues); //TODO
+	}
 }
 
 /* USER CODE END 0 */
@@ -150,8 +172,8 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_ADCEx_Calibration_Start(&hadc1);
-//  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);// 50 duty cycle
+  // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+   //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);// 50 duty cycle
 
   //testInit(&hi2c1, &huart1);
   struct State* pState = getState();
@@ -162,24 +184,24 @@ int main(void)
   // testPages();
   // testTemp2V();
 
-  stateSetMode(HEATING);
-  pState->preSetTemp = 350;// cfgGetEncTick(); TODO
-  pState->highPower = false;
-  pState->highPowerTemp = 380;// cfgGetEncTick(); TODO
-  encoderSetTick(pState->preSetTemp);
-  heaterSetTemp(pState->preSetTemp);
-  buzzToneInit(&htim3);
-  input_init( );
+
+  //buzzToneInit(&htim3); //TODO
+  input_init( );//TODO
   guiInit();
+
+  stateSetMode(HEATING);
+	pState->preSetTemp = cfgGetEncTick(); //TODO = 320
+	pState->highPower = false;
+	pState->highPowerTemp = 360;// cfgGetEncTick(); TODO
+	encoderSetTick(pState->preSetTemp);
+	heaterSetTemp(pState->preSetTemp);
 //  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
 //  	HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
 //  	TIM3->ARR = 1000;
 //  	HAL_Delay(1000);
 //  	HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
-    playHeatTone();
-  //playTone(HeatTone);
-//  adcCheckStartTime = HAL_GetTick();
-//  adcCheckEndTime = adcCheckStartTime + adcCheckPeriod;
+
+
 
   /* USER CODE END 2 */
 
@@ -187,17 +209,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
- 	checkState();
-	if(isExti()){// check input exit interrupt
-		resetExti();
-	}
- 	toneTickHandler();
-	if(adcRead){
-		adcRead = 0;
-		pState->currentTemp = v2temp(pState->currentAdcVal);
-		guiUpdate( );
- 	}
+	doIt(pState);
 	// other checks TODO
 
     /* USER CODE END WHILE */
@@ -375,7 +387,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7200-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 500-1;
+  htim2.Init.Period = 100-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -419,9 +431,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 72-1;
+  htim3.Init.Prescaler = 71;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 20;
+  htim3.Init.Period = 1000;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -531,7 +543,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, HEATER_Pin|OUT_19_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -547,12 +559,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : OUT_19_Pin */
-  GPIO_InitStruct.Pin = OUT_19_Pin;
+  /*Configure GPIO pins : HEATER_Pin OUT_19_Pin */
+  GPIO_InitStruct.Pin = HEATER_Pin|OUT_19_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(OUT_19_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PH_Pin ENC_SW_Pin Dock_Pin */
   GPIO_InitStruct.Pin = PH_Pin|ENC_SW_Pin|Dock_Pin;
@@ -606,6 +618,11 @@ static void MX_GPIO_Init(void)
 
 	adcRead = 1;  // set flag to indicate one adc conversion is done
 	adcCount++;
+
+	if (adcCount >= GUI_UPDATE_COUNT) {
+		adcCount = 0;
+		updateGui = true;
+	}
  }
 
  void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)

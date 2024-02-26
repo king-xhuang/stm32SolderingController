@@ -9,7 +9,7 @@ void buzzToneInit(TIM_HandleTypeDef* pTimer){
 }
 // parameters for tone ticks
 const uint16_t toneTickPeriod = 125; // ms. Tone tick period is the time unit for playing a tone
-const uint16_t toneRepeatPeriod =  toneTickPeriod*4*5; // for circular tones only
+const uint16_t toneRepeatPeriod =  toneTickPeriod*8*5; // for circular tones only
 uint32_t nextToneTickTime = 0;  // ms. Time to check tone playing status.
 uint32_t nextTonePlayTime = 0;  // ms. for circular tone, repeat every toneRepeatPeriod
 bool isToneTick = false;        // true - a ToneTick is created
@@ -33,17 +33,17 @@ const uint8_t heatToneDur[3] = {2, 1, 2};   // array of play duration for each t
 
 const  uint8_t powerHeatToneSize = 2;
 const  uint16_t powerHeatToneARR[2] = { tLow, tHi}; //
-const  uint8_t powerHeatToneDur[2] = {  1, 2};   // array of play duration for each tone, in unit of tone tick,
+const  uint8_t powerHeatToneDur[2] = {1, 2};   // array of play duration for each tone, in unit of tone tick,
 
 
 const  uint8_t warmToneSize = 3;
 const  uint16_t warmToneARR[3] = {tE5, tD5, tC5}; // c5, d5, e5  // tone array -- tone represented by ARR count
-const  uint8_t warmToneDur[3] = {2,  1, 2};   // array of play duration for each tone, in unit of tone tick,
+const  uint8_t warmToneDur[3] = {2, 1, 6};   // array of play duration for each tone, in unit of tone tick,
 
 
 const  uint8_t stopToneSize = 5;
 const  uint16_t stopToneARR[5] = {tE5, tD5, tC5, tD5, tC5}; // c5, d5, e5  // tone array -- tone represented by ARR count
-const  uint8_t stopToneDur[5] = {2, 1, 2, 1, 2};   // array of play duration for each tone, in unit of tone tick,
+const  uint8_t stopToneDur[5] = {2, 1, 2, 1, 6};   // array of play duration for each tone, in unit of tone tick,
 
 
 // tone player
@@ -54,7 +54,7 @@ uint8_t toneSize;
 bool isPlayTone = false;
 bool isRepeatTone = false;
 
-uint16_t on_peroide = 500; //in us. Pulse on time
+uint16_t on_peroide = 100; //in us. Pulse on time
 uint8_t curToneIndex = 0;  // the index of the tone being played currently
 uint8_t curToneDur = 0;    // the tone duration, in unit of tone tick, being played currently
 
@@ -72,15 +72,16 @@ void setTone(uint16_t* pArr,  const uint8_t* pDur, const uint8_t sz, bool rep){/
 	isRepeatTone = rep;
 }
 void playHeatTone(){
-	setTone(heatToneARR, heatToneDur, heatToneSize, false);
-	startTonePlay();
+//	setTone(heatToneARR, heatToneDur, heatToneSize, false);
+//	startTonePlay();
+	playTone(WarmTone);
 }
 void playTone(enum ToneType t){
 	switch(t){
-		case PowerHeatTone:	setTone(powerHeatToneARR, powerHeatToneDur, powerHeatToneSize, true);
-		case HeatTone: setTone(heatToneARR, heatToneDur, heatToneSize, true);
-		case WarmTone: setTone(warmToneARR, warmToneDur, warmToneSize, false);
-		case StopTone: setTone(stopToneARR, stopToneDur, stopToneSize, false);
+		case PowerHeatTone:	setTone(powerHeatToneARR, powerHeatToneDur, powerHeatToneSize, true); break;
+		case HeatTone: setTone(heatToneARR, heatToneDur, heatToneSize, true);break;
+		case WarmTone: setTone(warmToneARR, warmToneDur, warmToneSize, false);break;
+		case StopTone: setTone(stopToneARR, stopToneDur, stopToneSize, false);break;
 	}
 
 	startTonePlay();
@@ -89,7 +90,7 @@ void playTone(enum ToneType t){
 
 void startTonePlay(){
 	isPlayTone = 1; // indicating a new tones play is started
-	curToneIndex = 0; // start with 1st tone
+	curToneIndex = 0; // start with 1st note
     toneTickBegin(false);
 	__HAL_TIM_SET_COMPARE(hTimer, TIM_CHANNEL_1, on_peroide);
 	HAL_TIM_OC_Start(hTimer, TIM_CHANNEL_1);
@@ -158,7 +159,7 @@ void toneRepeatTickEnd(){
 	isRepeatToneTick = false;
 	genRepeatToneTick = false;
 }
-void toneTickGen(){// tone tick generater, called in while loop
+void toneTickGen(){// tone tick generator, called in while loop
 	if (genToneTick){
 		if (HAL_GetTick() >= nextToneTickTime){
 			isToneTick = true; // set tone tick flag

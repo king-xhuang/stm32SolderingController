@@ -63,6 +63,8 @@ void Error_Handler(void);
 #define LED_GPIO_Port GPIOC
 #define TIM3_PWM_Pin GPIO_PIN_6
 #define TIM3_PWM_GPIO_Port GPIOA
+#define HEATER_Pin GPIO_PIN_0
+#define HEATER_GPIO_Port GPIOB
 #define OUT_19_Pin GPIO_PIN_1
 #define OUT_19_GPIO_Port GPIOB
 #define PH_Pin GPIO_PIN_11

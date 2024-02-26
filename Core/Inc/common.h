@@ -9,9 +9,15 @@ extern C {
 #include <stdbool.h>
 #include <stdint.h>
 #include "main.h"
+#include "buzzerTone.h"
 //#include "stm32f1xx_hal.h"
 // common variable, constances shared by all modulea
 
+// choose one of the following soldering tips
+#define	C245  = 0
+
+//#define	C210
+//end of choose soldering tips
 enum Mode {OFF = 0,
 			WARM,
 			HEATING,
@@ -40,7 +46,8 @@ void stateSetMode(enum Mode mode);
 bool stateModeIs(enum Mode mode);
 void checkStateTimeout( uint32_t currentTick );
 struct State* getState();
-
+void checkBeepFlag();
+bool save2Eeprom();
 #ifdef __cplusplus
 }
 #endif

@@ -23,7 +23,7 @@
  const uint16_t  shortPress = 500;         // If the button was pressed less that this timeout, we assume the short button press
  volatile uint32_t pt;                       // Time in ms when the button was pressed (press time)
 
- char pinName[5] ="";
+ //char pinName[5] ="";
  struct State* pStat;
 
  void input_init( ){
@@ -45,9 +45,9 @@
  void encoderSetTick(uint16_t tick){
  	   encoderCt = tick;
   }
- char* getExtiSrc(){
-	 return pinName;
- }
+// char* getExtiSrc(){
+//	 return pinName;
+// }
 void exti_callback(uint16_t GPIO_Pin){
 
 	currentMillis = HAL_GetTick();
@@ -69,10 +69,10 @@ void exti_callback(uint16_t GPIO_Pin){
 		 }
 	    if (encoderCt > encoderCtMax) encoderCt = encoderCtMax;
 	    else if (encoderCt < encoderCtMin) encoderCt = encoderCtMin;
-		 strcpy(pinName, "ENC_A");
+		 //strcpy(pinName, "ENC_A");
 	 }
 	 else if (GPIO_Pin == ENC_SW_Pin){
-		 strcpy(pinName, "ENCSW");
+		// strcpy(pinName, "ENCSW");
 		 bool keyUp = HAL_GPIO_ReadPin(ENC_SW_GPIO_Port, ENC_SW_Pin);
 		 unsigned long now_t = HAL_GetTick();
 		  if (!keyUp) {                                 // The button has been pressed
@@ -101,8 +101,8 @@ void exti_callback(uint16_t GPIO_Pin){
 	 }
 	 else if  (GPIO_Pin == PH_Pin ){ //Power heating button/paddle down/up
 		if (  isPaddleDown()){
-			stateSetMode(HEATING);
 			pStat->highPower = true;
+			stateSetMode(HEATING);
 		}
 		else{
 			pStat->highPower = false;

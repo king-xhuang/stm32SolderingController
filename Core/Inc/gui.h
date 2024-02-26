@@ -12,7 +12,7 @@ extern C {
 
 void guiInit( );
 //void guiUpdate(struct State s);
-void guiUpdate( );
+void guiUpdate(uint32_t adcValues[] );
 
 #ifdef __cplusplus
 }

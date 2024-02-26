@@ -4,31 +4,37 @@
 
 char stemp[5];
 char sAdcVal[4];
+char sAdcVal2[4];
 char sMode[1];
 
 void guiInit( ){
 	 SSD1306_Init();
 }
 
-void guiUpdate( ){
-	SSD1306_Clear();
-    uint16_t target = getState()->encoderTick;
+void guiUpdate(uint32_t adcValues[] ){
+	uint8_t x = 0;
+#ifdef C245
+    x = 4;
+#endif
+
+	SSD1306_Fill (0);
+    uint16_t target = heaterTargetTemp();
     uint32_t targetav = heaterTargetAdcV();
     if (stateModeIs( WARM)){
-    	target = 200;
-    	targetav = heaterWarmTargetAdcV();
+    	target = heaterWarmTargetTemp();
+    	targetav =  heaterWarmTargetAdcV();
     }
     else if(stateModeIs(HEATING) && getState()->highPower){
-    	target = getState()->encoderTick + 30;
+    	target = heaterHighTargetTemp();
     	targetav = heaterHighTargetAdcV();
     }
 	// show target temp at 1st line
     utoa(target, stemp, 10);
-	SSD1306_GotoXY (0, 0);
+	SSD1306_GotoXY (x, 0);
 	SSD1306_Puts (stemp, &Font_11x18, 1);
 
 	utoa(targetav, sAdcVal, 10);
-	SSD1306_GotoXY (40, 0);
+	SSD1306_GotoXY (x+40, 0);
 	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
 
 	switch(getState()->mode){
@@ -39,18 +45,23 @@ void guiUpdate( ){
 		case SETTING: sMode[0] = 'S'; break;
 	}
 
-	SSD1306_GotoXY (112, 0);
+	SSD1306_GotoXY (x+112, 0);
 	SSD1306_Puts (sMode, &Font_11x18, 1);
 
 	// show current temp on 2nd line
 	utoa(getState()->currentTemp, stemp, 10);
-	SSD1306_GotoXY (0, 20);
+	SSD1306_GotoXY (x, 20);
 	SSD1306_Puts (stemp, &Font_11x18, 1);
 
 	// show current currentAdcVal on 3rd line
 	utoa(getState()->currentAdcVal, sAdcVal, 10);
-	SSD1306_GotoXY (0, 40);
+	SSD1306_GotoXY (x, 40);
 	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
+
+	//  most near target acd value
+//	utoa(mcreadValue, sAdcVal2, 10);
+//	SSD1306_GotoXY (x+60, 40);
+//	SSD1306_Puts (sAdcVal2, &Font_11x18, 1);
 
 	SSD1306_UpdateScreen();
 }
