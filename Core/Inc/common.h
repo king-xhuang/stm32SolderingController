@@ -38,6 +38,10 @@ struct State{
 	enum Mode mode;
 
 };
+enum HCAType{// Heating Control Algorithm type
+	HCAOnOff,
+	HCAPID
+};
 //extern volatile uint32_t warmEndTime;
 //extern volatile uint32_t heatingEndTime; //  in millis
 //extern volatile struct State state;
@@ -48,6 +52,12 @@ void checkStateTimeout( uint32_t currentTick );
 struct State* getState();
 void checkBeepFlag();
 bool save2Eeprom();
+
+enum HCAType HCAgetType();
+uint8_t getHCTickMax();
+void setPowerLevel(uint8_t pl);
+uint8_t getPowerLevel();
+
 #ifdef __cplusplus
 }
 #endif

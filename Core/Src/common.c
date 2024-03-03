@@ -2,16 +2,37 @@
 
 const uint32_t TimeToOff = 10*60*1000; // time from WARM to OFF mode in millis/adcCheckPeriod       minutes*60^1000
 const uint32_t TimeToWarm = 2*60*1000; // time from HEATING to WARM mode in millis/adcCheckPeriod   minutes*60^1000
+const uint8_t HCTickMax = 100;  // timer2 tick count Max
+
 
 volatile uint32_t warmEndTime;
 volatile uint32_t heatingEndTime; //  in millis
 
-//extern volatile uint32_t warmEndTime;
-//extern volatile uint32_t heatingEndTime; //  in millis
 volatile struct State state;
 volatile bool beep = false;
 volatile bool save2eeprom = false;
 volatile enum ToneType toneType = StopTone;
+volatile enum HCAType ncaType = HCAOnOff;
+
+volatile uint8_t HCPowerLevel = 0; //  heating control power level in unit of HCTick between  0 and HCTickMax
+void HCAset(enum HCAType ncaTy){
+	ncaType = ncaTy;
+}
+enum HCAType HCAgetType(){
+	return ncaType;
+}
+
+const uint8_t getHCTickMax(){
+	return HCTickMax;
+}
+void setPowerLevel(uint8_t pl){
+	if(pl > HCTickMax) HCPowerLevel = HCTickMax;
+	else HCPowerLevel = pl;
+}
+uint8_t getPowerLevel(){
+	return HCPowerLevel;
+}
+
 //check beep flag. Stop an existing beeper and start a new one when flag is set.
 void checkBeepFlag(){
 	if (beep){
@@ -38,6 +59,8 @@ void stateSetMode(enum Mode mode){
 		if(state.mode == HEATING) break;
 		state.mode = mode;
 		heatingEndTime = HAL_GetTick()  + TimeToWarm;
+        HCAset(HCAOnOff);
+        setPowerLevel(getHCTickMax());
 
 		if(state.highPower){
 			setBeepFlag(true, PowerHeatTone);
@@ -48,6 +71,8 @@ void stateSetMode(enum Mode mode){
 		break;
 	case WARM:
 		if(state.mode == WARM) break;
+		HCAset(HCAPID);
+		setPowerLevel(getHCTickMax()/2);
 		setBeepFlag(true,WarmTone );
 		state.mode = mode;
 		warmEndTime = HAL_GetTick()  + TimeToOff;

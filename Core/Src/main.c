@@ -27,7 +27,7 @@
 //#include "test.h"
 #include "buzzerTone.h"
 
-static const int GUI_UPDATE_COUNT = 20;
+static const int GUI_UPDATE_COUNT = 2; // need change when ADC cycle change to make gui refresh rate at 5/second
 //#include "fonts.h"
 //#include "ssd1306.h"
 /* USER CODE END Includes */
@@ -81,23 +81,13 @@ static void MX_TIM3_Init(void);
 uint32_t tempVal;
 volatile uint16_t mcreadValue;
 volatile uint32_t adcValues[3];
-char scount[10];
 GPIO_PinState preSt = 0;
 
-uint16_t refCount = 0;
-float adcf= 0.0;
-
-volatile uint8_t adcRead = 0;  // flag 1-- adc conversion completed
 volatile uint16_t adcCount = 0;
 
 volatile bool updateGui = false; // flag 1-- update GUI
 
-	//const uint32_t adcDelay = 1; //delay adc start for x ms to get accurate tc voltage, until fixed the slow falling edge on MOSFET Drain
-
-//const uint16_t adcCheckPeriod = 50; // in ms
-//
-//
-//volatile uint32_t adcCheckEndTime = 0;
+volatile uint8_t HCTickCount = 100; // timer2 tick count. initialized as HCTickMax so adc&&tempCheck can be started immediately.
 
 
 void sendMsg(char* msg, uint16_t len){
@@ -189,12 +179,13 @@ int main(void)
   input_init( );//TODO
   guiInit();
 
-  stateSetMode(HEATING);
+  stateSetMode(OFF);
 	pState->preSetTemp = cfgGetEncTick(); //TODO = 320
 	pState->highPower = false;
 	pState->highPowerTemp = 360;// cfgGetEncTick(); TODO
 	encoderSetTick(pState->preSetTemp);
 	heaterSetTemp(pState->preSetTemp);
+	HCAset(HCAOnOff);
 //  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
 //  	HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
 //  	TIM3->ARR = 1000;
@@ -387,7 +378,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7200-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 100-1;
+  htim2.Init.Period = 10-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -616,7 +607,6 @@ static void MX_GPIO_Init(void)
 		heaterCheckTemp(getState()->currentAdcVal , getState()->encoderTick);
 	}
 
-	adcRead = 1;  // set flag to indicate one adc conversion is done
 	adcCount++;
 
 	if (adcCount >= GUI_UPDATE_COUNT) {
@@ -624,20 +614,27 @@ static void MX_GPIO_Init(void)
 		updateGui = true;
 	}
  }
+void startADC(){
+	heaterEnable(false); // disable and  turn off heater before ADC start.
+	// it takes 3.5us to shut down the PMOSEFT -- 2us delay, 0.5us drop to zero, 1us ripple time
+	// it takes about 20-40 us for OP to make output voltage get ready for ADC conversion.
+	// it configured to takes 70us to complete ADC conversion on 3 channels, each with 239.5 cycle sampling time
+	// 1 refV, 2 tempreture, 3 ch0, so the ch0 will have the right thermal voltage  value to ADC conversion
 
+	HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);// set test signal
+	HAL_ADC_Start_DMA(&hadc1, adcValues, 3);  //
+}
  void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  {
 	 if (htim == &htim2){
-		heaterEnable(false); // disable and  turn off heater before ADC start.
-		// it takes 3.5us to shut down the PMOSEFT -- 2us delay, 0.5us drop to zero, 1us ripple time
-        // it takes about 20-40 us for OP to make output voltage get ready for ADC conversion.
-		// it configured to takes 70us to complete ADC conversion on 3 channels, each with 239.5 cycle sampling time
-		// 1 refV, 2 tempreture, 3 ch0, so the ch0 will have the right thermal voltage  value to ADC conversion
-
-		//adcTimerTrig = true;
-		//HAL_GPIO_WritePin(OUT_17_GPIO_Port, OUT_17_Pin, 0);// set test signal
-        HAL_GPIO_WritePin(OUT_19_GPIO_Port, OUT_19_Pin, 0);// set test signal
-		HAL_ADC_Start_DMA(&hadc1, adcValues, 3);  //
+		 HCTickCount++;
+		 if( HCTickCount >= getHCTickMax()){// reset adc && temp check cycle
+			 HCTickCount = 0; //
+			 startADC();
+		 }
+		 else if (HCTickCount >= getPowerLevel()){
+			 heaterEnable(false); //   heater off
+		 }
 	 }
  }
 

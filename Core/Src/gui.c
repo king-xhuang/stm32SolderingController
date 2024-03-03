@@ -6,6 +6,7 @@ char stemp[5];
 char sAdcVal[4];
 char sAdcVal2[4];
 char sMode[1];
+char sPower[3];
 
 void guiInit( ){
 	 SSD1306_Init();
@@ -58,6 +59,9 @@ void guiUpdate(uint32_t adcValues[] ){
 	SSD1306_GotoXY (x, 40);
 	SSD1306_Puts (sAdcVal, &Font_11x18, 1);
 
+    itoa(getPowerLevel(), sPower, 10);
+    SSD1306_GotoXY (x+ 90, 40);
+	SSD1306_Puts (sPower, &Font_11x18, 1);
 	//  most near target acd value
 //	utoa(mcreadValue, sAdcVal2, 10);
 //	SSD1306_GotoXY (x+60, 40);

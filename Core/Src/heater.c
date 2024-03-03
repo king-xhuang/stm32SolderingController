@@ -130,24 +130,38 @@ void heaterCheckTemp(uint32_t adcVal, uint16_t tick){
 	if (tick != targetTemp){
 		heaterSetTemp(tick);
 	}
-	uint32_t tempAdcVal = targetTempAdcVal;
+	uint32_t tempSetAdcVal = targetTempAdcVal;
 	if(stateModeIs(WARM)){
-		tempAdcVal = targetWarmTempAdcVal;
+		tempSetAdcVal = targetWarmTempAdcVal;
 	}else if (stateModeIs(HEATING)){
 		if (pSt->highPower){
-			tempAdcVal = targetHighTempAdcVal;
+			tempSetAdcVal = targetHighTempAdcVal;
 		}
 	}
 
-	int32_t vd = (int32_t)tempAdcVal - (int32_t)adcVal;
-	//onCount = calcOnCount(vd);
-	//if (onCount >  0){ //TODO
-	if (vd  >  0){
-		//heaterStartTime = HAL_GetTick();
-		heaterOn();
-	}else{
-		heaterOff();
+	int32_t vd = (int32_t)tempSetAdcVal - (int32_t)adcVal;
+
+	if (vd  >  0){// temp lower than temp set
+		if (HCAgetType() == HCAPID){
+			//TODO calculate/set PowerLevel based on PID rule
+			setPowerLevel(getHCTickMax()/2);//TODO
+		}else{//HCAOnOff
+			setPowerLevel(getHCTickMax());
+		}
+
+	}else{ // temp higher than temp set
+
+		if (HCAgetType() == HCAOnOff){
+			setPowerLevel(0);
+			HCAset(HCAPID);//at the first time when temp passed the target, change HCA to PID
+		}
+		if (HCAgetType() == HCAPID){
+			//TODO calculate/set PowerLevel based on PID rule
+			setPowerLevel(0);//TODO
+		}
 	}
+	if (getPowerLevel() > 0) heaterOn();
+	else heaterOff();
 }
 
 uint32_t heaterTargetTemp(){
