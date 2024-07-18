@@ -14,9 +14,9 @@ extern C {
 // common variable, constances shared by all modulea
 
 // choose one of the following soldering tips
-#define	C245  = 0
 
-//#define	C210
+//#define	C245  = 0
+#define	C210
 //end of choose soldering tips
 enum Mode {OFF = 0,
 			WARM,

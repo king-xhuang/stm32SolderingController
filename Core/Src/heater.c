@@ -29,14 +29,6 @@ uint32_t tempCalMin = 200;  // measured tip temp when adc read = adcVCalMin
 float  vCalDelta = 0.0;
 float  tempCalDelta = 0.0;
 bool   disabled = true; // when is set to ture, heater is turned off and cannot be turn on
-//uint16_t onCountMax = 100;      // the max value of onCount ,in ms,
-//uint16_t onCountStepSize = 10; // onCount ,in ms, is set to be one of the n = onCountStepSize values
-//uint16_t onCount = 0;           // heater on time in ms
-//
-//uint16_t onCountMap[10]; // array size should be the same as the onCountStepSize. store onCount value
-//						//for different vd = targetVal - adcVal. smaller index store smaller onCount value for smaller vd
-//uint32_t heaterStartTime = 0;//
-//uint32_t adcVCalStepCount = 20; // TODO passed in from heaterInit()
 
 GPIO_TypeDef *heaterPinPort;
 uint16_t heaterPin;

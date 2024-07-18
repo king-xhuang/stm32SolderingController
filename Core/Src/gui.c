@@ -7,9 +7,18 @@ char sAdcVal[4];
 char sAdcVal2[4];
 char sMode[1];
 char sPower[3];
+char sTip[4];
+
 
 void guiInit( ){
-	 SSD1306_Init();
+	strcpy(sTip,"????");
+	#ifdef C210
+	strcpy(sTip,"C210");
+	#endif
+	#ifdef C245
+	strcpy(sTip,"C245");
+	#endif
+	SSD1306_Init();
 }
 
 void guiUpdate(uint32_t adcValues[] ){
@@ -53,6 +62,10 @@ void guiUpdate(uint32_t adcValues[] ){
 	utoa(getState()->currentTemp, stemp, 10);
 	SSD1306_GotoXY (x, 20);
 	SSD1306_Puts (stemp, &Font_11x18, 1);
+
+	// show tip type on 2nd line right
+	SSD1306_GotoXY (x+90, 20);
+	SSD1306_Puts (sTip, &Font_11x18, 1);
 
 	// show current currentAdcVal on 3rd line
 	utoa(getState()->currentAdcVal, sAdcVal, 10);
