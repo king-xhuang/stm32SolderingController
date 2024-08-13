@@ -12,11 +12,11 @@ uint32_t targetWarmTempAdcVal;
 uint32_t targetHighTempAdcVal;
 
 #ifdef C210
-uint32_t adcVCalMax = 2560; // adv calibration high value at tip temp of 360 C. TODO need adjusted by experiment, determined by OP gain and tip tc property
-uint32_t adcVCalMin = 770; // adv calibration low  value  at tip temp of 180 C.
+uint32_t adcVCalMax = 1575; // adv calibration high value at tip temp of 330 C.   need adjust by experiment, determined by OP gain and tip tc property
+uint32_t adcVCalMin = 241; // adv calibration low  value  at tip temp of 150 C.
 
-uint32_t tempCalMax = 440;  // measured tip temp when adc read = adcVCalMax
-uint32_t tempCalMin = 240;  // measured tip temp when adc read = adcVCalMin
+uint32_t tempCalMax = 330;  // measured tip temp when adc read = adcVCalMax
+uint32_t tempCalMin = 150;  // measured tip temp when adc read = adcVCalMin
 #endif
 #ifdef C245
 uint32_t adcVCalMax = 2593; // adv calibration high value at tip temp of tempCalMax. TODO need adjusted by experiment, determined by OP gain and tip tc property

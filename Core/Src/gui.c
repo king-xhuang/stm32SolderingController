@@ -64,7 +64,7 @@ void guiUpdate(uint32_t adcValues[] ){
 	SSD1306_Puts (stemp, &Font_11x18, 1);
 
 	// show tip type on 2nd line right
-	SSD1306_GotoXY (x+90, 20);
+	SSD1306_GotoXY (x+80, 20);
 	SSD1306_Puts (sTip, &Font_11x18, 1);
 
 	// show current currentAdcVal on 3rd line
